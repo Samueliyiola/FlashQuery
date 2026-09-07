@@ -1,0 +1,33 @@
+# docker/Dockerfile.postgres
+# ============================================================
+# Custom PostgreSQL image with HypoPG extension
+# ============================================================
+
+# Start from official PostgreSQL 16
+FROM postgres:16
+
+# Install HypoPG extension
+# HypoPG lets us test hypothetical indexes without actually building them
+# This is critical for our regression checks
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    postgresql-16-hypopg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy init scripts - these run automatically on first container start
+# 01-create-extensions.sql → Creates HypoPG and pg_stat_statements
+# 02-create-roles.sql     → Creates read-only 'analyzer' user
+COPY docker/init-scripts/ /docker-entrypoint-initdb.d/
+
+# Enable pg_stat_statements (track query execution statistics)
+# This is how we identify which queries are slow
+RUN echo "shared_preload_libraries = 'pg_stat_statements'" >> /usr/share/postgresql/postgresql.conf.sample
+RUN echo "pg_stat_statements.track = all" >> /usr/share/postgresql/postgresql.conf.sample
+RUN echo "pg_stat_statements.max = 10000" >> /usr/share/postgresql/postgresql.conf.sample
+
+# Health check - lets Docker know when PostgreSQL is ready
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
+    CMD pg_isready -U postgres || exit 1
+
+# Start PostgreSQL
+CMD ["postgres"]

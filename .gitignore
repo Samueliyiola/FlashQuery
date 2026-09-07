@@ -1,0 +1,74 @@
+
+# PYTHON
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+*.egg
+
+
+# ENVIRONMENT (SENSITIVE!)
+
+.env
+.env.local
+.env.*.local
+
+
+# POSTGRES DATA & DUMPS
+
+# Ignore the Docker volume and database dumps
+postgres_data/
+pgdata/
+*.dump
+*.tar
+*.backup
+# Only ignore local exports, keep tracked SQL files
+*export*.sql
+*dump*.sql
+
+
+# PROJECT GENERATED FILES
+
+data/
+logs/
+*.log
+reports/
+benchmarks/results/
+temp/
+
+
+# IDE & OS
+
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+
+# TEMPORARY FILES
+
+*.tmp
+*.temp
+*.bak
+*.backup
+*.pid
+.lock

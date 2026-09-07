@@ -1,0 +1,63 @@
+# version: "3.8"
+
+services:
+  # Primary Lab PostgreSQL Database (Simulated "Production")
+  postgres-lab:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.postgres
+    container_name: pg_optimizer_lab
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-testdb}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Persistent storage for the seeded 3M+ rows
+      - pg_lab_data:/var/lib/postgresql/data
+      # Mount seed scripts or dumps directly into the container for easy execution
+      - ./data:/data
+    networks:
+      - optimizer_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB:-testdb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Ephemeral Sandbox DB (Where candidate indexes get verified)
+  # Uses tmpfs (RAM disk) so tests execute in-memory at max speed
+  postgres-sandbox:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.postgres
+    container_name: pg_optimizer_sandbox
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${SANDBOX_USER:-postgres}
+      POSTGRES_PASSWORD: ${SANDBOX_PASSWORD:-postgres}
+      POSTGRES_DB: ${SANDBOX_DB:-sandboxdb}
+    ports:
+      - "${SANDBOX_PORT:-5433}:5432"
+    # RAM disk mount: writes and tests happen in memory, zero disk degradation
+    tmpfs:
+      - /var/lib/postgresql/data:rw,noexec,nosuid,size=1024m
+    networks:
+      - optimizer_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${SANDBOX_DB:-sandboxdb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  pg_lab_data:
+    driver: local
+
+networks:
+  optimizer_net:
+    driver: bridge
